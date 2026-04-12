@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 # Create router instance
 router = APIRouter(
     prefix="/api/roles",
-    tags=["roles"],
+    tags=["Roles"],
     responses={404: {"description": "Not found"}},
 )
 

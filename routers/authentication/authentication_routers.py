@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 # Create router instance
 router = APIRouter(
     prefix="/api/authentication",
-    tags=["authentication"],
+    tags=["Authentication"],
     responses={404: {"description": "Not found"}},
 )
 

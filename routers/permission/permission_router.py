@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 # Create router instance
 router = APIRouter(
     prefix="/api/permissions",
-    tags=["permissions"],
+    tags=["Permissions"],
     responses={404: {"description": "Not found"}},
 )
 

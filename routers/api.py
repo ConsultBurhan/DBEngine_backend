@@ -21,6 +21,7 @@ from routers.permission.permission_task_router import router as permission_task_
 from routers.permission.permission_router import router as permission_router
 from routers.document.document_group_router import router as document_group_router
 from routers.document.document_router import router as document_router
+from routers.clients.clients_router import router as client_router
 logger = get_logger(__name__)
 
 
@@ -99,3 +100,5 @@ app.include_router(document_group_router)
 logger.info("Registered document group router")
 app.include_router(document_router)
 logger.info("Registered document router")
+app.include_router(client_router)
+logger.info("Registered clients router")

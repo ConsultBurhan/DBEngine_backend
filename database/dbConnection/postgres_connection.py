@@ -7,7 +7,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
-
+import asyncio
 from config.settings import (
     POSTGRES_DATABASE,
     POSTGRES_HOST,

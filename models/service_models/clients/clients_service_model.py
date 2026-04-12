@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import UploadFile
+from fastapi import UploadFile, File
 from pydantic import BaseModel
 
 
@@ -28,7 +28,7 @@ class ClientCreate(BaseModel):
     DefaultLanguageCode: Optional[str] = None
     ClientPrefix: str
     Status: Optional[int] = None
-    Logo: Optional[str] = None
+    Logo: UploadFile = File(...)
 
 
 class ClientUpdate(BaseModel):
@@ -36,5 +36,5 @@ class ClientUpdate(BaseModel):
     ClientId: int
     Clientname: Optional[str] = None
     Status: Optional[int] = None
-    Logo: Optional[str] = None
+    Logo: Optional[UploadFile] = File(...)
     DefaultLanguageCode: Optional[str] = None
