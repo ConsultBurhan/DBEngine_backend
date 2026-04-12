@@ -19,14 +19,8 @@ logging.basicConfig(
 logger = get_logger(__name__)
 
 
-async def startup():
-    """Application startup tasks."""
-    logger.info("Application starting up...")
-    logger.info("Application started successfully")
-
 
 if __name__ == "__main__":
-    asyncio.run(startup())
     logger.info("Server starting...")
     uvicorn.run(
         "routers.api:app",
