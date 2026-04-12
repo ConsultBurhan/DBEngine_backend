@@ -1,51 +1,55 @@
 """Document service for managing document operations."""
 from __future__ import annotations
-
+from typing import List, Optional
 import json
 from datetime import datetime
-from typing import List, Optional
 
-import httpx
-from sqlalchemy import text
-
-from database.dbConnection.postgres_connection import (
-    get_postgres_manager,
-    PostgresConnectionManager,
-)
-from database.dbModel.document.document import Document
-from models.service_models.document_group.document_service_model import (
-    CreateDocument,
-    DocumentDeleteResponse,
+from models.service_models.document.document_service_model import (
     DocumentList,
-    UplopadTranslatedDocument,
+    CreateDocument,
+    UploadTranslatedDocument,
+    DocumentDeleteResponse
 )
 from models.common import ResponseData, UResponse
+from database.dbConnection.postgres_connection import PostgresConnectionManager, get_postgres_manager
+from services.fileupload.file_upload_service import upload_file
+from sqlalchemy import text
 from config.logger_config import get_logger
+from dotenv import load_dotenv
+import os
+import httpx
 
 logger = get_logger(__name__)
+load_dotenv()
+
+# Chatbot configuration from environment variables
+CHATBOT_BASE_URL = os.getenv("CHATBOT_BASE_URL")
+CHATBOT_API_KEY = os.getenv("CHATBOT_API_KEY")
+CHATBOT_TIMEOUT_SECONDS = int(os.getenv("CHATBOT_TIMEOUT_SECONDS", "3000"))
+
+# Validate chatbot configuration
+if not CHATBOT_BASE_URL:
+    raise ValueError("CHATBOT_BASE_URL environment variable is not set")
+if not CHATBOT_API_KEY:
+    raise ValueError("CHATBOT_API_KEY environment variable is not set")
+
 
 
 class DocumentService:
-    """Service for document operations including CRUD and external service integration."""
-
     def __init__(
         self,
         client_id: int = 0,
         user_id: int = 0,
         db_manager: Optional[PostgresConnectionManager] = None,
-        translator_client: Optional[httpx.AsyncClient] = None,
-        chatbot_client: Optional[httpx.AsyncClient] = None,
     ):
-        self._client_id = client_id
-        self._user_id = user_id
+        self.client_id = client_id
+        self.user_id = user_id
         self._db_manager = db_manager or get_postgres_manager()
-        self._translator_client = translator_client
-        self._chatbot_client = chatbot_client
 
     async def get_all_documents_async(
         self, document_group_id: int
     ) -> ResponseData[List[DocumentList]]:
-        """Get all documents for a document group."""
+        """Get all documents by document group ID with their group names."""
         response = ResponseData[List[DocumentList]](
             Success=True,
             Message="Documents fetched successfully",
@@ -55,29 +59,24 @@ class DocumentService:
         try:
             async with await self._db_manager.get_session() as session:
                 query = text("""
-                    SELECT 
+                    SELECT
                         d.id,
                         d.documentname,
-                        d.url,
                         d.documentgroupid,
-                        dg.documentgroupname,
+                        g.documentgroupname as documentgroupname,
                         d.clientid,
                         d.botid,
-                        d.noofchunks,
+                        d.status,
                         d.createddate,
                         d.createdby,
                         d.updateddate,
                         d.updatedby,
-                        d.status,
-                        d.embeddingdb,
-                        d.embeddingdetails,
-                        d.fileextension,
-                        d.documentstatus
+                        d.document_status,
+                        d.fileextension
                     FROM documents d
-                    INNER JOIN documentgroups dg ON d.documentgroupid = dg.id
-                    WHERE d.documentgroupid = :document_group_id 
-                        AND d.status = 1
-                    ORDER BY d.documentname
+                    INNER JOIN documentgroups g ON d.documentgroupid = g.id
+                    WHERE d.documentgroupid = :document_group_id AND d.status = 1
+                    ORDER BY d.documentname ASC
                 """)
                 result = await session.execute(
                     query, {"document_group_id": document_group_id}
@@ -88,21 +87,17 @@ class DocumentService:
                     DocumentList(
                         Id=row["id"],
                         Documentname=row["documentname"],
-                        Url=row["url"],
                         Documentgroupid=row["documentgroupid"],
                         DocumentGroupName=row["documentgroupname"],
                         Clientid=row["clientid"],
                         Botid=row["botid"],
-                        Noofchunks=row["noofchunks"],
+                        Status=row["status"],
                         Createddate=row["createddate"],
                         Createdby=row["createdby"],
                         Updateddate=row["updateddate"],
                         Updatedby=row["updatedby"],
-                        Status=row["status"],
-                        Embeddingdb=row["embeddingdb"],
-                        Embeddingdetails=row["embeddingdetails"],
+                        DocumentStatus=row["document_status"],
                         Fileextension=row["fileextension"],
-                        DocumentStatus=row["documentstatus"],
                     )
                     for row in rows
                 ]
@@ -120,7 +115,7 @@ class DocumentService:
     async def get_document_by_id_async(
         self, document_id: int
     ) -> ResponseData[DocumentList]:
-        """Get a document by ID."""
+        """Get a single document by ID with its group name."""
         response = ResponseData[DocumentList](
             Success=True,
             Message="Document fetched successfully",
@@ -130,55 +125,50 @@ class DocumentService:
         try:
             async with await self._db_manager.get_session() as session:
                 query = text("""
-                    SELECT 
+                    SELECT
                         d.id,
                         d.documentname,
-                        d.url,
                         d.documentgroupid,
-                        dg.documentgroupname,
+                        g.documentgroupname as documentgroupname,
                         d.clientid,
                         d.botid,
-                        d.noofchunks,
+                        d.status,
                         d.createddate,
                         d.createdby,
                         d.updateddate,
                         d.updatedby,
-                        d.status,
-                        d.embeddingdb,
-                        d.embeddingdetails,
-                        d.fileextension,
-                        d.documentstatus
+                        d.document_status,
+                        d.fileextension
                     FROM documents d
-                    INNER JOIN documentgroups dg ON d.documentgroupid = dg.id
+                    INNER JOIN documentgroups g ON d.documentgroupid = g.id
                     WHERE d.id = :document_id AND d.status = 1
                     LIMIT 1
                 """)
-                result = await session.execute(query, {"document_id": document_id})
+                result = await session.execute(
+                    query, {"document_id": document_id}
+                )
                 row = result.mappings().first()
 
                 if row is None:
                     response.Success = False
                     response.Message = f"Document with ID {document_id} not found"
+                    response.Data = None
                     return response
 
                 response.Data = DocumentList(
                     Id=row["id"],
                     Documentname=row["documentname"],
-                    Url=row["url"],
                     Documentgroupid=row["documentgroupid"],
                     DocumentGroupName=row["documentgroupname"],
                     Clientid=row["clientid"],
                     Botid=row["botid"],
-                    Noofchunks=row["noofchunks`"],
+                    Status=row["status"],
                     Createddate=row["createddate"],
                     Createdby=row["createdby"],
                     Updateddate=row["updateddate"],
                     Updatedby=row["updatedby"],
-                    Status=row["status"],
-                    Embeddingdb=row["embeddingdb"],
-                    Embeddingdetails=row["embeddingdetails"],
+                    DocumentStatus=row["document_status"],
                     Fileextension=row["fileextension"],
-                    DocumentStatus=row["documentstatus"],
                 )
 
         except Exception as ex:
@@ -190,42 +180,59 @@ class DocumentService:
         return response
 
     async def upload_document_async(
-        self, create_document: CreateDocument, document_url: str, file_extension: str
+        self, create_document: CreateDocument
     ) -> UResponse:
-        """Upload a new document."""
+        """Upload a document to storage and create a database record."""
         response = UResponse(Status=0, Message="")
 
         try:
+            if create_document.Document is None:
+                response.Status = 1
+                response.Message = "Document cannot be empty"
+                return response
+
+            document_url = await upload_file(create_document.Document)
+            if not document_url:
+                response.Status = 1
+                response.Message = "Error while uploading document"
+                return response
+
+            file_extension = (
+                create_document.Document.filename.split(".")[-1]
+                if "." in create_document.Document.filename
+                else ""
+            )
+
+            now = datetime.now()
             async with await self._db_manager.get_session() as session:
-                now = datetime.now()
                 insert_query = text("""
                     INSERT INTO documents (
                         documentname, url, fileextension, documentgroupid,
-                        clientid, botid, createddate, createdby, status, documentstatus
+                        clientid, botid, createddate, createdby, status, document_status
                     ) VALUES (
-                        :document_name, :url, :file_extension, :document_group_id,
-                        :client_id, :bot_id, :created_date, :created_by, :status, :document_status
+                        :documentname, :url, :fileextension, :documentgroupid,
+                        :clientid, :botid, :createddate, :createdby, :status, :document_status
                     ) RETURNING id
                 """)
-                result = await session.execute(
+                await session.execute(
                     insert_query,
                     {
-                        "document_name": create_document.Documentname,
+                        "documentname": create_document.Documentname,
                         "url": document_url,
-                        "file_extension": file_extension,
-                        "document_group_id": create_document.Documentgroupid,
-                        "client_id": self._client_id,
-                        "bot_id": create_document.Botid,
-                        "created_date": now,
-                        "created_by": str(self._user_id),
+                        "fileextension": file_extension,
+                        "documentgroupid": create_document.Documentgroupid,
+                        "clientid": self.client_id,
+                        "botid": create_document.Botid,
+                        "createddate": now,
+                        "createdby": str(self.user_id),
                         "status": 1,
                         "document_status": 1,  # Pending status
                     },
                 )
                 await session.commit()
 
-                response.Status = 0
-                response.Message = "Document uploaded and under process"
+            response.Status = 0
+            response.Message = "Document uploaded and under process"
 
         except Exception as ex:
             logger.error(f"Error uploading document: {ex}")
@@ -234,159 +241,57 @@ class DocumentService:
 
         return response
 
-    async def upload_translated_document_async(
-        self,
-        translated_document: UplopadTranslatedDocument,
-        document_url: str,
+    async def create_document_training_to_chatbot_async(
+        self, translate_url: str, bot_id: int, client_id: int, document_id: int
     ) -> UResponse:
-        """Upload translated document and trigger training."""
+        """Send document to chatbot for training."""
         response = UResponse(Status=0, Message="")
-        doc_info: Optional[Document] = None
 
         try:
-            async with await self._db_manager.get_session() as session:
-                # Get document info
-                select_query = text("""
-                    SELECT 
-                        id, documentname, url, documentgroupid, clientid, botid,
-                        noofchunks, createddate, createdby, updateddate, updatedby,
-                        status, embeddingdb, embeddingdetails, fileextension,
-                        translatedtexturl, documentstatus
-                    FROM documents 
-                    WHERE id = :document_id AND status = 1
-                    LIMIT 1
-                """)
-                result = await session.execute(
-                    select_query, {"document_id": translated_document.Documentid}
-                )
-                row = result.mappings().first()
+            request_body = {
+                "Database_Url_groups": [],
+                "Document_url_groups": [translate_url],
+                "Schema_Url_groups": [],
+                "bot_id": str(bot_id),
+                "client_id": str(client_id),
+                "document_id": document_id,
+            }
 
-                if row is None:
-                    response.Status = 1
-                    response.Message = "Document with provided Id can not be found"
-                    return response
+            url = "/BotTraining/train-Bot"
+            async with httpx.AsyncClient(
+                base_url=CHATBOT_BASE_URL,
+                timeout=CHATBOT_TIMEOUT_SECONDS,
+                headers={"X-API-Key": CHATBOT_API_KEY}
+            ) as client:
+                process_response = await client.post(url, json=request_body)
 
-                doc_info = Document(
-                    Id=row["id"],
-                    Documentname=row["documentname"],
-                    Url=row["url"],
-                    Documentgroupid=row["documentgroupid"],
-                    Clientid=row["clientid"],
-                    Botid=row["botid"],
-                    Noofchunks=row["noofchunks"],
-                    Createddate=row["createddate"],
-                    Createdby=row["createdby"],
-                    Updateddate=row["updateddate"],
-                    Updatedby=row["updatedby"],
-                    Status=row["status"],
-                    Embeddingdb=row["embeddingdb"],
-                    Embeddingdetails=row["embeddingdetails"],
-                    Fileextension=row["fileextension"],
-                    TranslatedtextUrl=row["translatedtexturl"],
-                    DocumentStatus=row["documentstatus"],
-                )
+            if process_response.status_code != 200:
+                response.Status = 1
+                response.Message = f"Bot training failed: {process_response.text}"
+                return response
 
-                if not document_url:
-                    # Update status to failed
-                    update_query = text("""
-                        UPDATE documents 
-                        SET documentstatus = :status
-                        WHERE id = :document_id
-                    """)
-                    await session.execute(
-                        update_query,
-                        {
-                            "status": 2,  # Failed
-                            "document_id": translated_document.Documentid,
-                        },
-                    )
-                    await session.commit()
-
-                    response.Status = 1
-                    response.Message = "Error while uploading document"
-                    return response
-
-                # Create training
-                training_response = await self._create_document_training_to_chatbot(
-                    document_url, doc_info.Botid or 0, doc_info.Clientid or 0, translated_document.Documentid
-                )
-
-                if training_response.Status != 0:
-                    # Update status to failed
-                    update_query = text("""
-                        UPDATE documents 
-                        SET documentstatus = :status
-                        WHERE id = :document_id
-                    """)
-                    await session.execute(
-                        update_query,
-                        {
-                            "status": 2,  # Failed
-                            "document_id": translated_document.Documentid,
-                        },
-                    )
-                    await session.commit()
-
-                    response.Status = 1
-                    response.Message = "Error while creating document embeddings"
-                    return response
-
-                # Update document with translated URL and success status
-                update_query = text("""
-                    UPDATE documents 
-                    SET translatedtexturl = :url, documentstatus = :status
-                    WHERE id = :document_id
-                """)
-                await session.execute(
-                    update_query,
-                    {
-                        "url": document_url,
-                        "status": 0,  # Completed
-                        "document_id": translated_document.Documentid,
-                    },
-                )
-                await session.commit()
-
-                response.Status = 0
-                response.Message = "Document uploaded successfully"
+            response.Status = 0
+            response.Message = "Training uploaded and Bot training started successfully."
 
         except Exception as ex:
-            logger.error(f"Error uploading translated document: {ex}")
-            if doc_info:
-                try:
-                    async with await self._db_manager.get_session() as session:
-                        update_query = text("""
-                            UPDATE documents 
-                            SET documentstatus = :status
-                            WHERE id = :document_id
-                        """)
-                        await session.execute(
-                            update_query,
-                            {
-                                "status": 2,  # Failed
-                                "document_id": translated_document.Documentid,
-                            },
-                        )
-                        await session.commit()
-                except Exception as inner_ex:
-                    logger.error(f"Error updating document status: {inner_ex}")
-
+            logger.error(f"Error generating and uploading training file: {ex}")
             response.Status = 1
-            response.Message = f"An error occurred while creating the document: {str(ex)}"
+            response.Message = f"Error generating and uploading training file: {str(ex)}"
 
         return response
 
     async def delete_document_async(
         self, document_id: int, bot_id: int, client_id: int, content_type: str = ""
     ) -> UResponse:
-        """Delete a document and its chunks from external services."""
+        """Delete a document and its associated chunks."""
         response = UResponse(Status=0, Message="")
 
         try:
+            # Check document existence
             async with await self._db_manager.get_session() as session:
-                # Check document existence
                 select_query = text("""
-                    SELECT id FROM documents WHERE id = :document_id AND status = 1
+                    SELECT id FROM documents
+                    WHERE id = :document_id AND status = 1
                     LIMIT 1
                 """)
                 result = await session.execute(
@@ -399,52 +304,52 @@ class DocumentService:
                     response.Message = f"Document with ID {document_id} not found."
                     return response
 
-                # Call chatbot service to delete document chunks
-                if self._chatbot_client:
-                    request_payload = {
-                        "document_id": document_id,
-                        "bot_id": str(bot_id),
-                        "client_id": str(client_id),
-                        "content_type": content_type,
-                    }
+            # Delete document chunks from BotTraining service
+            request_payload = {
+                "document_id": document_id,
+                "bot_id": str(bot_id),
+                "client_id": str(client_id),
+                "content_type": content_type
+            }
 
-                    try:
-                        chatbot_response = await self._chatbot_client.request(
-                            method="DELETE",
-                            url="/BotTraining/delete-document-chunks",
-                            content=json.dumps(request_payload),
-                            headers={"Content-Type": "application/json"},
-                        )
+            url = "/BotTraining/delete-document-chunks"
+            async with httpx.AsyncClient(
+                base_url=CHATBOT_BASE_URL,
+                timeout=CHATBOT_TIMEOUT_SECONDS,
+                headers={
+                    "X-API-Key": CHATBOT_API_KEY,
+                }
+            ) as client:
+                process_response = await client.request("DELETE", url, json=request_payload)
+            if process_response.status_code != 200:
+                response.Status = 1
+                response.Message = "Failed to delete document chunks from BotTraining service."
+                return response
 
-                        if chatbot_response.status_code != 200:
-                            response.Status = 1
-                            response.Message = "Failed to delete document chunks from BotTraining service."
-                            return response
+            # Validate deletion success from JSON response
+            response_content = process_response.json()
+            if (
+                not response_content.get("SupabaseDeleted")
+                or not response_content.get("RedisDocumentDeleted")
+            ):
+                response.Status = 1
+                response.Message = "Document chunks deletion incomplete (Supabase/Redis)."
+                return response
 
-                        response_content = chatbot_response.text
-                        delete_response = DocumentDeleteResponse.parse_raw(response_content)
-
-                        # Validate deletion success
-                        if not delete_response.SupabaseDeleted or not delete_response.RedisDocumentDeleted:
-                            response.Status = 1
-                            response.Message = "Document chunks deletion incomplete (Supabase/Redis)."
-                            return response
-
-                    except Exception as ex:
-                        logger.error(f"Error calling chatbot service: {ex}")
-                        response.Status = 1
-                        response.Message = f"Error calling chatbot service: {str(ex)}"
-                        return response
-
-                # Soft delete document locally
+            # Soft delete document locally
+            async with await self._db_manager.get_session() as session:
                 update_query = text("""
-                    UPDATE documents SET status = 0 WHERE id = :document_id
+                    UPDATE documents
+                    SET status = 0
+                    WHERE id = :document_id
                 """)
-                await session.execute(update_query, {"document_id": document_id})
+                await session.execute(
+                    update_query, {"document_id": document_id}
+                )
                 await session.commit()
 
-                response.Status = 0
-                response.Message = "Document and associated chunks deleted successfully."
+            response.Status = 0
+            response.Message = "Document and associated chunks deleted successfully."
 
         except Exception as ex:
             logger.error(f"Error deleting document {document_id}: {ex}")
@@ -453,41 +358,118 @@ class DocumentService:
 
         return response
 
-    async def _create_document_training_to_chatbot(
-        self, translate_url: str, bot_id: int, client_id: int, document_id: int
+    async def upload_translated_document_async(
+        self, translated_document: UploadTranslatedDocument
     ) -> UResponse:
-        """Create document training in chatbot service."""
+        """Upload a translated document and process it for training."""
         response = UResponse(Status=0, Message="")
+        doc_info = None
 
         try:
-            if self._chatbot_client:
-                request_body = {
-                    "Database_Url_groups": [],
-                    "Document_url_groups": [translate_url],
-                    "Schema_Url_groups": [],
-                    "bot_id": str(bot_id),
-                    "client_id": str(client_id),
-                    "document_id": document_id,
-                }
+            # Validate document is not empty
+            if translated_document.Document is None:
+                response.Status = 1
+                response.Message = "Document can not be empty"
+                return response
 
-                chatbot_response = await self._chatbot_client.post(
-                    "/BotTraining/train-Bot",
-                    json=request_body,
+            # Find document by ID
+            async with await self._db_manager.get_session() as session:
+                select_query = text("""
+                    SELECT id, botid, clientid, document_status, translatedtext_url
+                    FROM documents
+                    WHERE id = :document_id AND status = 1
+                    LIMIT 1
+                """)
+                result = await session.execute(
+                    select_query, {"document_id": translated_document.Documentid}
                 )
+                doc_info = result.mappings().first()
 
-                response_content = chatbot_response.text
-
-                if chatbot_response.status_code != 200:
+                if doc_info is None:
                     response.Status = 1
-                    response.Message = f"Bot training failed: {response_content}"
+                    response.Message = "Document with provided Id can not be found"
                     return response
 
+            # Upload translated document
+            document_url = await upload_file(translated_document.Document)
+            if not document_url:
+                # Update document status to Failed
+                async with await self._db_manager.get_session() as session:
+                    update_query = text("""
+                        UPDATE documents
+                        SET document_status = 0
+                        WHERE id = :document_id
+                    """)
+                    await session.execute(
+                        update_query, {"document_id": translated_document.Documentid}
+                    )
+                    await session.commit()
+
+                response.Status = 1
+                response.Message = "Error while uploading document"
+                return response
+
+            # Create training for chatbot
+            training_response = await self.create_document_training_to_chatbot_async(
+                document_url,
+                doc_info["botid"] or 0,
+                doc_info["clientid"] or 0,
+                translated_document.Documentid
+            )
+
+            if training_response.Status != 0:
+                # Update document status to Failed
+                async with await self._db_manager.get_session() as session:
+                    update_query = text("""
+                        UPDATE documents
+                        SET document_status = 0
+                        WHERE id = :document_id
+                    """)
+                    await session.execute(
+                        update_query, {"document_id": translated_document.Documentid}
+                    )
+                    await session.commit()
+
+                response.Status = 1
+                response.Message = "Error while creating document embeddings"
+                return response
+
+            # Update document with translated URL and completed status
+            async with await self._db_manager.get_session() as session:
+                update_query = text("""
+                    UPDATE documents
+                    SET translatedtext_url = :translated_url, document_status = 2
+                    WHERE id = :document_id
+                """)
+                await session.execute(
+                    update_query,
+                    {
+                        "translated_url": document_url,
+                        "document_id": translated_document.Documentid
+                    }
+                )
+                await session.commit()
+
             response.Status = 0
-            response.Message = "Training uploaded and Bot training started successfully."
+            response.Message = "Document uploaded successfully"
 
         except Exception as ex:
-            logger.error(f"Error creating document training: {ex}")
+            logger.error(f"Error uploading translated document: {ex}")
+            # Update document status to Failed if doc_info exists
+            if doc_info is not None:
+                async with await self._db_manager.get_session() as session:
+                    update_query = text("""
+                        UPDATE documents
+                        SET document_status = 0
+                        WHERE id = :document_id
+                    """)
+                    await session.execute(
+                        update_query, {"document_id": translated_document.Documentid}
+                    )
+                    await session.commit()
+
             response.Status = 1
-            response.Message = f"Error generating and uploading training file: {str(ex)}"
+            response.Message = f"An error occurred while creating the document: {str(ex)}"
 
         return response
+

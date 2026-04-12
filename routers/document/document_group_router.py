@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_client_id, get_current_user, get_current_user_id
 from models.common import ApiResult
-from models.service_models.document_group.document_group_service_model import (
+from models.service_models.document.document_group_service_model import (
     CreateDocumentGroupRole,
     DocumentGroupCreate,
     DocumentGroupUpdate,
 )
-from services.document_group.document_group_service import DocumentgroupService
+from services.document.document_group_service import DocumentgroupService
 
 logger = get_logger(__name__)
 

@@ -10,7 +10,7 @@ from database.dbConnection.postgres_connection import (
     get_postgres_manager,
     PostgresConnectionManager,
 )
-from models.service_models.document_group.document_group_service_model import (
+from models.service_models.document.document_group_service_model import (
     CreateDocumentGroupRole,
     DocumentGroupCreate,
     DocumentGroupList,

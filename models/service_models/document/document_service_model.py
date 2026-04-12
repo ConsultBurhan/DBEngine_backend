@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from pydantic import BaseModel
-
+from fastapi import File, UploadFile
 
 class DocumentDeleteResponse(BaseModel):
     """DTO for document deletion response."""
@@ -44,11 +44,27 @@ class DocumentList(BaseModel):
 
 class CreateDocument(BaseModel):
     """DTO for creating a new document."""
-    Documentname: str
+    Documentname: Optional[str] = None
     Documentgroupid: int
     Botid: int
+    Document: UploadFile = File(...)
 
 
-class UplopadTranslatedDocument(BaseModel):
-    """DTO for uploading translated document."""
+class UploadTranslatedDocument(BaseModel):
+    """DTO for uploading a translated document."""
+    Document: UploadFile = File(...)
     Documentid: int
+
+
+class DocumentDeleteResponse(BaseModel):
+    """DTO for document deletion response."""
+    Message: str
+    DocumentId: str
+    BotId: str
+    ClientId: str
+    SupabaseDeleted: bool
+    SupabaseChunksDeleted: int
+    RedisChunksDeleted: int
+    RedisDocumentDeleted: bool
+    Status: str
+    DeletedFrom: List[str]

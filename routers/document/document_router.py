@@ -1,15 +1,11 @@
 """Documents router - Python implementation of DocumentsController."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form, status
-from typing import Optional
 
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_client_id, get_current_user, get_current_user_id
 from models.common import ApiResult
-from models.service_models.document_group.document_service_model import (
-    CreateDocument,
-    UplopadTranslatedDocument,
-)
+from models.service_models.document.document_service_model import CreateDocument, UploadTranslatedDocument
 from services.document.document_service import DocumentService
 
 logger = get_logger(__name__)
@@ -111,10 +107,10 @@ async def get_document_by_id(
 @router.post("/UploadDocument", response_model=ApiResult)
 async def upload_document(
     request: Request,
-    Documentname: str = Form(..., description="Document name"),
+    Documentname: str = Form(None, description="Document name"),
     Documentgroupid: int = Form(..., description="Document group ID"),
     Botid: int = Form(..., description="Bot ID"),
-    file: UploadFile = File(..., description="Document file to upload"),
+    Document: UploadFile = File(..., description="Document file to upload"),
     current_user: dict = Depends(get_current_user),
     client_id: int = Depends(get_client_id),
     user_id: int = Depends(get_current_user_id),
@@ -126,7 +122,7 @@ async def upload_document(
         Documentname: Document name
         Documentgroupid: Document group ID
         Botid: Bot ID
-        file: Document file to upload
+        Document: Document file to upload
 
     Returns:
         ApiResult: Created document status
@@ -137,21 +133,11 @@ async def upload_document(
             Documentname=Documentname,
             Documentgroupid=Documentgroupid,
             Botid=Botid,
+            Document=Document,
         )
-
-        # Extract file extension from uploaded file
-        file_extension = ""
-        if file.filename and "." in file.filename:
-            file_extension = file.filename.rsplit(".", 1)[-1]
-
-        # Read file content and get document URL (this would typically upload to storage)
-        # For now, using a placeholder URL - in production this would upload to blob storage
-        document_url = f"uploads/{file.filename}"
 
         document_service = DocumentService(client_id=client_id, user_id=user_id)
-        result = await document_service.upload_document_async(
-            create_document, document_url, file_extension
-        )
+        result = await document_service.upload_document_async(create_document)
 
         if result.Status != 0:
             return ApiResult(
@@ -179,7 +165,7 @@ async def upload_document(
 async def upload_translated_document(
     request: Request,
     Documentid: int = Form(..., description="Document ID"),
-    file: Optional[UploadFile] = File(None, description="Translated document file"),
+    Document: UploadFile = File(..., description="Translated document file to upload"),
 ) -> ApiResult:
     """
     Upload a translated document.
@@ -187,27 +173,21 @@ async def upload_translated_document(
 
     Args:
         Documentid: Document ID
-        file: Translated document file to upload
+        Document: Translated document file to upload
 
     Returns:
         ApiResult: Created document status
     """
     try:
-        # Build UplopadTranslatedDocument DTO from form fields
-        translated_document = UplopadTranslatedDocument(
+        # Build UploadTranslatedDocument DTO from form fields
+        translated_document = UploadTranslatedDocument(
             Documentid=Documentid,
+            Document=Document,
         )
-
-        # Get document URL from uploaded file or empty if no file
-        document_url = ""
-        if file and file.filename:
-            document_url = f"uploads/translated/{file.filename}"
 
         # Create service without client_id/user_id for anonymous access
         document_service = DocumentService()
-        result = await document_service.upload_translated_document_async(
-            translated_document, document_url
-        )
+        result = await document_service.upload_translated_document_async(translated_document)
 
         if result.Status != 0:
             return ApiResult(
