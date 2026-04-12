@@ -19,17 +19,3 @@ FILE_UPLOAD_PUBLIC_URL = "https://mbot.consulttechies.com/"
 
 # Allowed Hosts
 ALLOWED_HOSTS = "*"
-
-# Chatbot Configuration
-CHATBOT_BASE_URL = "https://devchatagent.consulttechies.com"
-CHATBOT_API_KEY = "BCT_CHATAGENT_API_KEY_1"
-CHATBOT_TIMEOUT_SECONDS = 3000
-
-# Lip Sync Configuration
-LIP_SYNC_BASE_URL = "http://15.185.89.253:5002"
-LIP_SYNC_TIMEOUT_SECONDS = 3000
-
-# DB Bot Configuration
-DB_BOT_BASE_URL = "https://dbengine.consulttechies.com"
-DB_BOT_API_KEY = "BCT_CHATAGENT_API_KEY_1"
-DB_BOT_TIMEOUT_SECONDS = 3000
