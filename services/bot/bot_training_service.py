@@ -291,7 +291,7 @@ class BotTrainingService:
         try:
             # Create request body
             request_body = {
-                "text": create_bot_training.TraingingText,
+                "text": create_bot_training.TrainingText,
                 "question": create_bot_training.QuestionText,
                 "bot_id": str(create_bot_training.BotId),
                 "training_type": create_bot_training.TrainingType,

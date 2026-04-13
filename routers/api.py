@@ -23,6 +23,7 @@ from routers.document.document_group_router import router as document_group_rout
 from routers.document.document_router import router as document_router
 from routers.clients.clients_router import router as client_router
 from routers.bot.bot_router import router as bot_router
+from routers.bot.bot_training_router import router as bot_training_router
 logger = get_logger(__name__)
 
 
@@ -105,3 +106,6 @@ app.include_router(client_router)
 logger.info("Registered clients router")
 app.include_router(bot_router)
 logger.info("Registered bots router")
+# Testing of create general training for chatbot and the create training of the database chatbot are pending 
+app.include_router(bot_training_router)  
+logger.info("Registered bot trainings router")

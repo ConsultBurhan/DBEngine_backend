@@ -53,7 +53,7 @@ class CreateBotGenralTraining(BaseModel):
     """Create bot general training model."""
     BotId: int
     TrainingType: int
-    TraingingText: str
+    TrainingText: str
     QuestionText: str
     Source: int
     BotResponseRatingId: Optional[int] = None
