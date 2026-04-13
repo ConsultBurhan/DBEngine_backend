@@ -25,6 +25,7 @@ from routers.clients.clients_router import router as client_router
 from routers.bot.bot_router import router as bot_router
 from routers.bot.bot_training_router import router as bot_training_router
 from routers.bot.bot_response_rating_router import router as bot_response_rating_router
+from routers.conversations.conversations_router import router as conversations_router
 logger = get_logger(__name__)
 
 
@@ -112,3 +113,5 @@ app.include_router(bot_training_router)
 logger.info("Registered bot trainings router")
 app.include_router(bot_response_rating_router)
 logger.info("Registered bot response rating router")
+app.include_router(conversations_router) # Get response yet to be implemented 
+logger.info("Registered conversations router")
