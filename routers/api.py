@@ -26,6 +26,7 @@ from routers.bot.bot_router import router as bot_router
 from routers.bot.bot_training_router import router as bot_training_router
 from routers.bot.bot_response_rating_router import router as bot_response_rating_router
 from routers.conversations.conversations_router import router as conversations_router
+from routers.database_table.database_tables_columns_router import router as database_table_column_router
 logger = get_logger(__name__)
 
 
@@ -115,3 +116,5 @@ app.include_router(bot_response_rating_router)
 logger.info("Registered bot response rating router")
 app.include_router(conversations_router) # Get response yet to be implemented 
 logger.info("Registered conversations router")
+app.include_router(database_table_column_router)
+logger.info("Registered database table column router")
