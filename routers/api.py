@@ -24,6 +24,7 @@ from routers.document.document_router import router as document_router
 from routers.clients.clients_router import router as client_router
 from routers.bot.bot_router import router as bot_router
 from routers.bot.bot_training_router import router as bot_training_router
+from routers.bot.bot_response_rating_router import router as bot_response_rating_router
 logger = get_logger(__name__)
 
 
@@ -109,3 +110,5 @@ logger.info("Registered bots router")
 # Testing of create general training for chatbot and the create training of the database chatbot are pending 
 app.include_router(bot_training_router)  
 logger.info("Registered bot trainings router")
+app.include_router(bot_response_rating_router)
+logger.info("Registered bot response rating router")

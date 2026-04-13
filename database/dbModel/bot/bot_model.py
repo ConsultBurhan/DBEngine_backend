@@ -34,13 +34,13 @@ class Bot(_BaseDBModel):
 
 class BotResponseRating(_BaseDBModel):
     """Bot response rating entity."""
-    id: int
-    conversationid: Optional[int] = None
-    conversationmessageid: Optional[int] = None
-    botid: Optional[int] = None
-    ratings: Optional[str] = None
-    reviewmessage: Optional[str] = None
-    createddate: Optional[datetime] = None
-    createdby: Optional[int] = None
-    clientid: Optional[int] = None
-    status: Optional[int] = None
+    Id: int
+    ConversationId: Optional[int] = None
+    ConverstaionMessageId: Optional[int] = None
+    BotId: Optional[int] = None
+    Ratings: Optional[str] = None
+    ReviewMessage: Optional[str] = None
+    CreatedDate: Optional[datetime] = None
+    CreatedBy: Optional[int] = None
+    ClientId: Optional[int] = None
+    Status: Optional[int] = None
