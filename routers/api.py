@@ -28,6 +28,9 @@ from routers.bot.bot_response_rating_router import router as bot_response_rating
 from routers.conversations.conversations_router import router as conversations_router
 from routers.database_table.database_tables_columns_router import router as database_table_column_router
 from routers.database_table.database_table_router import router as database_table_router
+from routers.brand.brand_router import router as brand_router
+from routers.brand.brand_store_router import router as brand_store_router
+from routers.concept_user_map.concept_user_map_store import router as concept_user_map_router
 
 logger = get_logger(__name__)
 
@@ -66,8 +69,8 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app with lifespan events
 logger.info("Creating FastAPI application instance")
 app = FastAPI(
-    title="User Management API",
-    description="FastAPI backend for user management with PostgreSQL and AI Bot",
+    title="DBEngine Backend",
+    description="FastAPI backend for user management with PostgreSQL and AI Bot along with the services for dbengine",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -122,3 +125,9 @@ app.include_router(database_table_column_router)
 logger.info("Registered database table column router")
 app.include_router(database_table_router)
 logger.info("Registered database table router")
+app.include_router(brand_router)
+logger.info("Registered brand router")
+app.include_router(brand_store_router)
+logger.info("Registered brand store router")
+app.include_router(concept_user_map_router)
+logger.info("Registered concept user map router")

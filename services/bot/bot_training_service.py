@@ -308,7 +308,7 @@ class BotTrainingService:
 
             async with AsyncClient(timeout=CHATBOT_TIMEOUT_SECONDS) as client:
                 process_response = await client.post(url, json=request_body, headers=headers)
-
+                logger.info(process_response)
                 if not process_response.is_success:
                     response_content = process_response.text
                     response.Status = 1
