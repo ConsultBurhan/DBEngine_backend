@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_current_user, get_current_user_id, get_client_id
 from models.common import ApiResult
-from models.service_models.bot.bot_response_rating_service_modes import CreateBotResponseRating
+from models.service_models.bot.bot_response_rating_service_models import CreateBotResponseRating
 from services.bot.bot_response_rating_service import BotResponseRatingService
 
 logger = get_logger(__name__)

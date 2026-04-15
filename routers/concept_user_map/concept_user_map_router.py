@@ -6,7 +6,7 @@ from fastapi import status as fastapiStatus
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_current_user, get_current_user_id
 from models.common import ApiResult
-from models.concept_user_map.concept_user_map_service_models import UserConceptMapDto
+from models.service_models.concept_user_map.concept_user_map_service_models import UserConceptMapDto
 from services.concept_user_map.concept_user_map_service import ConceptUserMapService
 
 logger = get_logger(__name__)

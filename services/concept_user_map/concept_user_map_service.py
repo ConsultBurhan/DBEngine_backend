@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from models.concept_user_map.concept_user_map_service_models import UserConceptMapDto
+from models.service_models.concept_user_map.concept_user_map_service_models import UserConceptMapDto
 from models.common import UResponse
 from database.dbConnection.postgres_connection import PostgresConnectionManager, get_postgres_manager
 from sqlalchemy import text

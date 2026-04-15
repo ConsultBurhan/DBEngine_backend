@@ -10,7 +10,7 @@ from database.dbConnection.postgres_connection import (
     PostgresConnectionManager,
     get_postgres_manager,
 )
-from models.service_models.bot.bot_response_rating_service_modes import BotResponseRatingList, CreateBotResponseRating
+from models.service_models.bot.bot_response_rating_service_models import BotResponseRatingList, CreateBotResponseRating
 from models.common import ResponseData, UResponse
 from config.logger_config import get_logger
 
