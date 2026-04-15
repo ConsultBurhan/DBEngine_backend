@@ -45,3 +45,10 @@ class BotSpecialTrainingCreate(BaseModel):
     text: Optional[str] = None
     title: Optional[str] = None
     category: Optional[str] = None
+
+
+class BotSpecialTrainingUpdate(BaseModel):
+    id: Optional[str] = None
+    text: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
