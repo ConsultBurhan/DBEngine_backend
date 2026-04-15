@@ -34,7 +34,7 @@ from routers.concept_user_map.concept_user_map_router import router as concept_u
 from routers.bot.bot_column_training_router import router as bot_column_training_router
 from routers.bot.bot_special_training_router import router as bot_special_training_router
 from routers.retraining.retraining_router import router as retraining_router
-
+from routers.app_setting.app_setting_router import router as app_setting_router
 logger = get_logger(__name__)
 
 
@@ -140,3 +140,5 @@ app.include_router(bot_special_training_router)
 logger.info("Registered bot special training router")
 app.include_router(retraining_router)
 logger.info("Registered retraining router")
+app.include_router(app_setting_router)
+logger.info("Registered app settings router")
