@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from fastapi import Request
 from sqlalchemy import text
 
 from database.dbConnection.postgres_connection import (
@@ -31,27 +30,25 @@ class UserService:
 
     def __init__(
         self,
-        request: Request,
+        client_id: int,
+        user_id: int,
+        subscriber_id: int,
         db_manager: Optional[PostgresConnectionManager] = None,
         crypto_service: Optional[CryptoService] = None,
         jwt_service: Optional[JWTService] = None,
     ):
-        self._request = request
+        self._client_id = client_id
+        self._user_id = user_id
+        self._subscriber_id = subscriber_id
         self._db_manager = db_manager or get_postgres_manager()
         self._crypto_service = crypto_service or CryptoService()
-        self._jwt_service = jwt_service or JWTService()
-
-        # Extract claims from JWT token via request state
-        self._client_id = self._jwt_service.get_client_id_from_access_token(request)
-        self._user_id = self._jwt_service.get_user_id_from_access_token(request)
-        self._subscriber_id = self._jwt_service.get_sub_id_from_access_token(request)
 
     async def get_all_users_async(self) -> ResponseData[List[UserWithRoles]]:
         """Get all active users for the current client and subscriber."""
         response = ResponseData[List[UserWithRoles]](
-            success=True,
-            message="",
-            data=[],
+            Success=True,
+            Message="",
+            Data=[],
         )
 
         try:
@@ -70,9 +67,9 @@ class UserService:
                 rows = result.mappings().all()
 
                 if not rows:
-                    response.success = False
-                    response.message = "No active users found"
-                    response.data = []
+                    response.Success = False
+                    response.Message = "No active users found"
+                    response.Data = []
                     return response
 
                 result_list: List[UserWithRoles] = []
@@ -96,24 +93,24 @@ class UserService:
                     )
                     result_list.append(user_dto)
 
-                response.success = True
-                response.message = "Users fetched successfully"
-                response.data = result_list
+                response.Success = True
+                response.Message = "Users fetched successfully"
+                response.Data = result_list
 
         except Exception as ex:
             logger.error(f"Error fetching users: {ex}")
-            response.success = False
-            response.message = f"An error occurred while fetching users: {str(ex)}"
-            response.data = []
+            response.Success = False
+            response.Message = f"An error occurred while fetching users: {str(ex)}"
+            response.Data = []
 
         return response
 
     async def get_user_by_id_async(self, user_id: int) -> ResponseData[UserWithRoles]:
         """Get a specific user by ID."""
         response = ResponseData[UserWithRoles](
-            success=True,
-            message="",
-            data=None,
+            Success=True,
+            Message="",
+            Data=None,
         )
 
         try:
@@ -125,9 +122,9 @@ class UserService:
                 row = result.mappings().first()
 
                 if row is None:
-                    response.success = False
-                    response.message = f"No active user found with ID {user_id}"
-                    response.data = None
+                    response.Success = False
+                    response.Message = f"No active user found with ID {user_id}"
+                    response.Data = None
                     return response
 
                 user = self._row_to_user(row)
@@ -150,26 +147,26 @@ class UserService:
                     RolesId=",".join(role_ids),
                 )
 
-                response.success = True
-                response.message = "User fetched successfully"
-                response.data = user_dto
+                response.Success = True
+                response.Message = "User fetched successfully"
+                response.Data = user_dto
 
         except Exception as ex:
             logger.error(f"Error fetching user: {ex}")
-            response.success = False
-            response.message = f"An error occurred while fetching the user: {str(ex)}"
-            response.data = None
+            response.Success = False
+            response.Message = f"An error occurred while fetching the user: {str(ex)}"
+            response.Data = None
 
         return response
 
     async def create_user_async(self, user_dto: CreateUser) -> UResponse:
         """Create a new user."""
-        response = UResponse(status=0, message="")
+        response = UResponse(Status=0, Message="")
 
         try:
             # Generate salt and hash password
             salt = await self._crypto_service.generate_salt()
-            password_hash = await self._crypto_service.hash_password(user_dto.password, salt)
+            password_hash = await self._crypto_service.hash_password(user_dto.Password, salt)
 
             async with await self._db_manager.get_session() as session:
                 # Get client info
@@ -180,11 +177,11 @@ class UserService:
                 client_row = client_result.mappings().first()
 
                 if client_row is None:
-                    response.status = -1
-                    response.message = "Client not found"
+                    response.Status = 1
+                    response.Message = "Client not found"
                     return response
 
-                username = f"{client_row['client_prefix']}-{user_dto.username}"
+                username = f"{client_row['client_prefix']}-{user_dto.Username}"
 
                 # Check for existing user
                 existing_result = await session.execute(
@@ -196,8 +193,8 @@ class UserService:
                     {"username": username, "client_id": self._client_id},
                 )
                 if existing_result.mappings().first() is not None:
-                    response.status = -1
-                    response.message = f"A user with the username '{user_dto.Username}' already exists for this client."
+                    response.Status = 1
+                    response.Message = f"A user with the username '{user_dto.Username}' already exists for this client."
                     return response
 
                 # Create user
@@ -238,37 +235,37 @@ class UserService:
                 # Update role mappings
                 if created_user_id:
                     await self._update_user_role_mappings(
-                        session, created_user_id, user_dto.roles_id, str(self._user_id)
+                        session, created_user_id, user_dto.RolesId, str(self._user_id)
                     )
 
-                response.status = 0
-                response.message = "User created successfully"
+                response.Status = 0
+                response.Message = "User created successfully"
 
         except Exception as ex:
             logger.error(f"Error creating user: {ex}")
-            response.status = -1
-            response.message = f"An error occurred while creating the user: {str(ex)}"
+            response.Status = 1
+            response.Message = f"An error occurred while creating the user: {str(ex)}"
 
         return response
 
     async def update_user_async(self, user_dto: UpdateUser) -> UResponse:
         """Update an existing user."""
-        response = UResponse(status=0, message="")
+        response = UResponse(Status=0, Message="")
 
         try:
             async with await self._db_manager.get_session() as session:
                 # Check if user exists
                 existing_result = await session.execute(
                     text("SELECT id FROM users WHERE id = :user_id"),
-                    {"user_id": user_dto.user_id},
+                    {"user_id": user_dto.UserId},
                 )
                 if existing_result.mappings().first() is None:
-                    response.status = 1
-                    response.message = f"No user found with ID {user_dto.user_id}"
+                    response.Status = 1
+                    response.Message = f"No user found with ID {user_dto.user_id}"
                     return response
 
                 # Check for duplicate username
-                if user_dto.username:
+                if user_dto.Username:
                     duplicate_result = await session.execute(
                         text("""
                             SELECT id FROM users
@@ -282,8 +279,8 @@ class UserService:
                         },
                     )
                     if duplicate_result.mappings().first() is not None:
-                        response.status = -1
-                        response.message = f"A user with the username '{user_dto.Username}' already exists for this client."
+                        response.Status = 1
+                        response.Message = f"A user with the username '{user_dto.Username}' already exists for this client."
                         return response
 
                 # Update user
@@ -314,19 +311,19 @@ class UserService:
                     session, user_dto.UserId, user_dto.RolesId, user_dto.Updatedby
                 )
 
-                response.status = 0
-                response.message = "User updated successfully"
+                response.Status = 0
+                response.Message = "User updated successfully"
 
         except Exception as ex:
             logger.error(f"Error updating user: {ex}")
-            response.status = -1
-            response.message = f"An error occurred while updating the user: {str(ex)}"
+            response.Status = 1
+            response.Message = f"An error occurred while updating the user: {str(ex)}"
 
         return response
 
     async def delete_user_async(self, user_id: int) -> UResponse:
         """Soft delete a user."""
-        response = UResponse(status=0, message="")
+        response = UResponse(Status=0, Message="")
 
         try:
             async with await self._db_manager.get_session() as session:
@@ -336,8 +333,8 @@ class UserService:
                     {"user_id": user_id},
                 )
                 if existing_result.mappings().first() is None:
-                    response.status = 1
-                    response.message = f"No user found with ID {user_id}"
+                    response.Status = 1
+                    response.Message = f"No user found with ID {user_id}"
                     return response
 
                 now = datetime.now()
@@ -359,34 +356,34 @@ class UserService:
                 )
                 await session.commit()
 
-                response.status = 0
-                response.message = "User deleted successfully"
+                response.Status = 0
+                response.Message = "User deleted successfully"
 
         except Exception as ex:
             logger.error(f"Error deleting user: {ex}")
-            response.status = -1
-            response.message = f"An error occurred while deleting the user: {str(ex)}"
+            response.Status = 1
+            response.Message = f"An error occurred while deleting the user: {str(ex)}"
 
         return response
 
     async def update_user_prefered_language(self, user_lang_dto: UpdateUserLanguage) -> UResponse:
         """Update user's preferred language."""
-        response = UResponse(status=0, message="")
+        response = UResponse(Status=0, Message="")
 
         try:
             async with await self._db_manager.get_session() as session:
                 # Check if user exists
                 existing_result = await session.execute(
                     text("SELECT id FROM users WHERE id = :user_id"),
-                    {"user_id": user_lang_dto.user_id},
+                    {"user_id": user_lang_dto.UserId},
                 )
                 if existing_result.mappings().first() is None:
-                    response.status = 1
-                    response.message = f"No user found with ID {user_lang_dto.user_id}"
+                    response.Status = 1
+                    response.Message = f"No user found with ID {user_lang_dto.UserId}"
                     return response
 
                 await session.execute(
-                    text("UPDATE users SET languagecode = :language_code WHERE id = :user_id"),
+                    text("""UPDATE users SET "LanguageCode" = :language_code WHERE id = :user_id"""),
                     {
                         "language_code": user_lang_dto.LanguageCode,
                         "user_id": user_lang_dto.UserId,
@@ -394,13 +391,13 @@ class UserService:
                 )
                 await session.commit()
 
-                response.status = 0
-                response.message = "User language updated successfully"
+                response.Status = 0
+                response.Message = "User language updated successfully"
 
         except Exception as ex:
             logger.error(f"Error updating user language: {ex}")
-            response.status = -1
-            response.message = f"An error occurred while updating the user language: {str(ex)}"
+            response.Status = 1
+            response.Message = f"An error occurred while updating the user language: {str(ex)}"
 
         return response
 

@@ -355,7 +355,7 @@ class DocumentgroupService:
                 create_document_group_role is None
                 or create_document_group_role.DocumentGroupId <= 0
             ):
-                response.Status = -1
+                response.Status = 1
                 response.Message = "Invalid request. Document Group ID is required."
                 return response
 
@@ -366,7 +366,7 @@ class DocumentgroupService:
 
         except Exception as ex:
             logger.error(f"Error creating document group role map: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while creating document group role map: {str(ex)}"
 
         return response
@@ -481,7 +481,7 @@ class DocumentgroupService:
 
         except Exception as ex:
             logger.error(f"Error updating document group role mappings: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while updating document group role mappings: {str(ex)}"
 
         return response

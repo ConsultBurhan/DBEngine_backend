@@ -40,11 +40,11 @@ async def save_permission_by_role(
         permission_service = PermissionService(user_id=user_id)
         result = await permission_service.save_permission_by_role_async(permission_dto)
 
-        if result.status != 0:
+        if result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=result.message,
+                Message=result.Message,
                 Result=None
             )
 

@@ -131,7 +131,7 @@ async def create_brand(
         brand_service = BrandService(user_id=user_id)
         result = await brand_service.create_brand_async(create_dto)
 
-        if result.Status != 200:
+        if result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -181,7 +181,7 @@ async def update_brand(
         brand_service = BrandService(user_id=user_id)
         result = await brand_service.update_brand_async(update_dto)
 
-        if result.Status != 200:
+        if result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -223,7 +223,7 @@ async def delete_brand(
         brand_service = BrandService(user_id=user_id)
         result = await brand_service.delete_brand_async(id)
 
-        if result.Status != 200:
+        if result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,

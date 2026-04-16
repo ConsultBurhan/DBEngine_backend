@@ -56,7 +56,7 @@ async def save_user_concept_map(
         concept_user_map_service = ConceptUserMapService(user_id=user_id)
         result = await concept_user_map_service.save_user_concept_map_async(create_dto)
 
-        if result.Status != 200:
+        if result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,

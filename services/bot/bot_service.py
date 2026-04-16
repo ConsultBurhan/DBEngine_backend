@@ -549,7 +549,7 @@ class BotService:
 
         except Exception as ex:
             logger.error(f"Error updating bot role mappings: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while updating Bot role mappings: {str(ex)}"
 
         return response
@@ -560,7 +560,7 @@ class BotService:
 
         try:
             if create_bot_role is None or create_bot_role.BotId <= 0:
-                response.Status = -1
+                response.Status = 1
                 response.Message = "Invalid request. Bot ID is required."
                 return response
 
@@ -568,7 +568,7 @@ class BotService:
 
         except Exception as ex:
             logger.error(f"Error creating bot role map: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while creating document group role map: {str(ex)}"
 
         return response

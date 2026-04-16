@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from config.logger_config import get_logger
-from dependencies.jwt_dependencies import get_current_user, get_current_user_id
+from dependencies.jwt_dependencies import get_current_user, get_current_user_id, get_client_id, get_subscriber_id
 from models.common import ApiResult
 from models.service_models.user.user_service_models import (
     CreateUser,
@@ -28,8 +28,10 @@ router = APIRouter(
 
 @router.get("/GetAllUsers", response_model=ApiResult)
 async def get_all_users(
-    request: Request,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Get all active users with associated role IDs.
@@ -38,22 +40,22 @@ async def get_all_users(
         ApiResult: List of users with comma-separated role IDs
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         result = await user_service.get_all_users_async()
 
-        if not result.success:
+        if not result.Success:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=result.message,
+                Message=result.Message,
                 Result=None
             )
 
         return ApiResult(
             StatusCode=0,
             Success=True,
-            Message=result.message,
-            Result=result.data
+            Message=result.Message,
+            Result=result.Data
         )
         
     except Exception as e:
@@ -66,9 +68,11 @@ async def get_all_users(
 
 @router.get("", response_model=ApiResult)
 async def get_user(
-    request: Request,
     id: int = Query(..., description="User ID"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Get a specific user by ID with associated role IDs.
@@ -80,22 +84,22 @@ async def get_user(
         ApiResult: User details with comma-separated role IDs
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         result = await user_service.get_user_by_id_async(id)
 
-        if not result.success:
+        if not result.Success:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=result.message,
+                Message=result.Message,
                 Result=None
             )
 
         return ApiResult(
             StatusCode=0,
             Success=True,
-            Message=result.message,
-            Result=result.data
+            Message=result.Message,
+            Result=result.Data
         )
         
     except Exception as e:
@@ -108,9 +112,11 @@ async def get_user(
 
 @router.post("", response_model=ApiResult)
 async def create_user(
-    request: Request,
     user_dto: CreateUser,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Create a new user with associated role IDs.
@@ -122,21 +128,21 @@ async def create_user(
         ApiResult: Created user status
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         created_user = await user_service.create_user_async(user_dto)
 
-        if created_user.status != 0:
+        if created_user.Status != 0:
             return ApiResult(
-                StatusCode=created_user.status,
+                StatusCode=created_user.Status,
                 Success=False,
-                Message=created_user.message,
+                Message=created_user.Message,
                 Result=None
             )
 
         return ApiResult(
-            StatusCode=created_user.status,
+            StatusCode=created_user.Status,
             Success=True,
-            Message=created_user.message,
+            Message=created_user.Message,
             Result=None
         )
         
@@ -150,9 +156,11 @@ async def create_user(
 
 @router.put("", response_model=ApiResult)
 async def update_user(
-    request: Request,
     user_dto: UpdateUser,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Update an existing user with associated role IDs (password not updated).
@@ -164,21 +172,21 @@ async def update_user(
         ApiResult: Updated user status
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         updated_user = await user_service.update_user_async(user_dto)
 
-        if updated_user.status == 1:
+        if updated_user.Status == 1:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=updated_user.message,
+                Message=updated_user.Message,
                 Result=None
             )
 
         return ApiResult(
             StatusCode=0,
             Success=True,
-            Message=updated_user.message,
+            Message=updated_user.Message,
             Result=None
         )
         
@@ -192,9 +200,11 @@ async def update_user(
 
 @router.put("/UpdateUserLanguage", response_model=ApiResult)
 async def update_user_language(
-    request: Request,
     user_dto: UpdateUserLanguage,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Update user's preferred language.
@@ -206,21 +216,21 @@ async def update_user_language(
         ApiResult: Update status
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         updated_user_lang = await user_service.update_user_prefered_language(user_dto)
 
-        if updated_user_lang.status == 1:
+        if updated_user_lang.Status == 1:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=updated_user_lang.message,
+                Message=updated_user_lang.Message,
                 Result=None
             )
 
         return ApiResult(
             StatusCode=0,
             Success=True,
-            Message=updated_user_lang.message,
+            Message=updated_user_lang.Message,
             Result=None
         )
         
@@ -234,9 +244,11 @@ async def update_user_language(
 
 @router.delete("", response_model=ApiResult)
 async def delete_user(
-    request: Request,
     id: int = Query(..., description="User ID"),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    client_id: int = Depends(get_client_id),
+    user_id: int = Depends(get_current_user_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> ApiResult:
     """
     Delete a user (soft delete) and remove all role associations.
@@ -248,21 +260,21 @@ async def delete_user(
         ApiResult: Success status
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, user_id, subscriber_id)
         result = await user_service.delete_user_async(id)
 
-        if result.status == 1:
+        if result.Status == 1:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
-                Message=result.message,
+                Message=result.Message,
                 Result=None
             )
         
         return ApiResult(
             StatusCode=0,
             Success=True,
-            Message=result.message,
+            Message=result.Message,
             Result=None
         )
         
@@ -276,8 +288,9 @@ async def delete_user(
 
 @router.get("/profile", response_model=UserWithRoles)
 async def get_profile(
-    request: Request,
-    current_user_id: int = Depends(get_current_user_id)
+    current_user_id: int = Depends(get_current_user_id),
+    client_id: int = Depends(get_client_id),
+    subscriber_id: int = Depends(get_subscriber_id)
 ) -> UserWithRoles:
     """
     Get current user profile (requires authentication).
@@ -286,16 +299,16 @@ async def get_profile(
         UserWithRoles: Current user information
     """
     try:
-        user_service = UserService(request)
+        user_service = UserService(client_id, current_user_id, subscriber_id)
         result = await user_service.get_user_by_id_async(current_user_id)
         
-        if not result.success or result.data is None:
+        if not result.Success or result.Data is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
 
-        return result.data
+        return result.Data
         
     except HTTPException:
         raise

@@ -175,7 +175,7 @@ async def update_permission_task(
 
         if result.Status == 1:
             return ApiResult(
-                StatusCode=0,
+                StatusCode=1,
                 Success=False,
                 Message=result.Message,
                 Result=None
@@ -218,7 +218,7 @@ async def delete_permission_task(
 
         if result.Status == 1:
             return ApiResult(
-                Statuscode=0,
+                StatusCode=1,
                 Success=False,
                 Message=result.Message,
                 Result=None

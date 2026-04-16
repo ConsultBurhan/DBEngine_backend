@@ -24,7 +24,7 @@ class BrandService:
     async def create_brand_async(self, create_dto: BrandCreateDto) -> UResponse:
         """Create a new brand."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -42,7 +42,7 @@ class BrandService:
                 existing_brand = result.mappings().first()
 
                 if existing_brand:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Brand name already exists"
                     return response
 
@@ -76,12 +76,12 @@ class BrandService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "Brand created successfully"
 
         except Exception as ex:
             logger.error(f"Error creating brand: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response
@@ -89,7 +89,7 @@ class BrandService:
     async def update_brand_async(self, update_dto: BrandUpdateDto) -> UResponse:
         """Update an existing brand."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -107,7 +107,7 @@ class BrandService:
                 brand = result.mappings().first()
 
                 if brand is None:
-                    response.Status = 404
+                    response.Status = 1
                     response.Message = "Brand not found"
                     return response
 
@@ -124,7 +124,7 @@ class BrandService:
                 existing_brand = result.mappings().first()
 
                 if existing_brand:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Brand name already exists"
                     return response
 
@@ -153,12 +153,12 @@ class BrandService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "Brand updated successfully"
 
         except Exception as ex:
             logger.error(f"Error updating brand: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response
@@ -166,7 +166,7 @@ class BrandService:
     async def delete_brand_async(self, brand_id: int) -> UResponse:
         """Soft delete a brand and its related stores."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -184,7 +184,7 @@ class BrandService:
                 brand = result.mappings().first()
 
                 if brand is None:
-                    response.Status = 404
+                    response.Status = 1
                     response.Message = "Brand not found"
                     return response
 
@@ -237,12 +237,12 @@ class BrandService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = f"Brand and {store_count} store(s) deleted successfully"
 
         except Exception as ex:
             logger.error(f"Error deleting brand: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response

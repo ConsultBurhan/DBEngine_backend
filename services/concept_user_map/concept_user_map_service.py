@@ -24,21 +24,21 @@ class ConceptUserMapService:
     async def save_user_concept_map_async(self, create_dto: UserConceptMapDto) -> UResponse:
         """Save user concept and store mappings."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
         try:
             # Validate UserId
             if create_dto.UserId <= 0:
-                response.Status = 400
+                response.Status = 1
                 response.Message = "Valid User ID is required"
                 return response
 
             # Validate that at least one concept or store is provided
             if (not create_dto.ConceptIds or not create_dto.ConceptIds) and \
                (not create_dto.StoreIds or not create_dto.StoreIds):
-                response.Status = 400
+                response.Status = 1
                 response.Message = "At least one concept or store is required"
                 return response
 
@@ -129,12 +129,12 @@ class ConceptUserMapService:
 
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "User concept map saved successfully"
 
         except Exception as ex:
             logger.error(f"Error saving user concept map: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response

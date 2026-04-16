@@ -131,7 +131,7 @@ class RoleService:
                 )
                 if existing_result.mappings().first() is not None:
                     return UResponse(
-                        Status=-1,
+                        Status=1,
                         Message="A role with the same name already exists",
                     )
 
@@ -170,7 +170,7 @@ class RoleService:
                 return UResponse(Status=0, Message="Role created successfully")
         except Exception as exc:
             return UResponse(
-                Status=-1,
+                Status=1,
                 Message=f"An error occurred while creating the role: {exc}",
             )
 
@@ -222,7 +222,7 @@ class RoleService:
                 return UResponse(Status=0, Message="Role updated successfully")
         except Exception as exc:
             return UResponse(
-                Status=-1,
+                Status=1,
                 Message=f"An error occurred while updating the role: {exc}",
             )
 
@@ -278,7 +278,7 @@ class RoleService:
                 )
         except Exception as exc:
             return UResponse(
-                Status=-1,
+                Status=1,
                 Message=f"An error occurred while deleting the role: {exc}",
             )
 
@@ -454,6 +454,6 @@ class RoleService:
             )
         except Exception as exc:
             return UResponse(
-                Status=-1,
+                Status=1,
                 Message=f"An error occurred while updating bot-role mappings: {exc}",
             )

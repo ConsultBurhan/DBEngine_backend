@@ -147,7 +147,7 @@ class BrandStoreService:
     async def create_brand_store_async(self, create_dto: BrandStoreCreateDto) -> UResponse:
         """Create a new brand store."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -164,7 +164,7 @@ class BrandStoreService:
                 brand = result.mappings().first()
 
                 if brand is None:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Brand not found"
                     return response
 
@@ -181,7 +181,7 @@ class BrandStoreService:
                 existing_store = result.mappings().first()
 
                 if existing_store:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Store name already exists for this brand"
                     return response
 
@@ -215,12 +215,12 @@ class BrandStoreService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "BrandStore created successfully"
 
         except Exception as ex:
             logger.error(f"Error creating brand store: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response
@@ -228,7 +228,7 @@ class BrandStoreService:
     async def update_brand_store_async(self, update_dto: BrandStoreUpdateDto) -> UResponse:
         """Update an existing brand store."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -245,7 +245,7 @@ class BrandStoreService:
                 brand = result.mappings().first()
 
                 if brand is None:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Brand not found"
                     return response
 
@@ -261,7 +261,7 @@ class BrandStoreService:
                 store = result.mappings().first()
 
                 if store is None:
-                    response.Status = 404
+                    response.Status = 1
                     response.Message = "BrandStore not found"
                     return response
 
@@ -279,7 +279,7 @@ class BrandStoreService:
                 existing_store = result.mappings().first()
 
                 if existing_store:
-                    response.Status = 409
+                    response.Status = 1
                     response.Message = "Store name already exists for this brand"
                     return response
 
@@ -308,12 +308,12 @@ class BrandStoreService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "BrandStore updated successfully"
 
         except Exception as ex:
             logger.error(f"Error updating brand store: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response
@@ -321,7 +321,7 @@ class BrandStoreService:
     async def delete_brand_store_async(self, id: int) -> UResponse:
         """Soft delete a brand store."""
         response = UResponse(
-            Status=500,
+            Status=1,
             Message="Error"
         )
 
@@ -339,7 +339,7 @@ class BrandStoreService:
                 store = result.mappings().first()
 
                 if store is None:
-                    response.Status = 404
+                    response.Status = 1
                     response.Message = "BrandStore not found"
                     return response
 
@@ -362,12 +362,12 @@ class BrandStoreService:
                 )
                 await session.commit()
 
-                response.Status = 200
+                response.Status = 0
                 response.Message = "BrandStore deleted successfully"
 
         except Exception as ex:
             logger.error(f"Error deleting brand store: {ex}")
-            response.Status = 500
+            response.Status = 1
             response.Message = str(ex)
 
         return response

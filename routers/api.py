@@ -36,6 +36,7 @@ from routers.bot.bot_special_training_router import router as bot_special_traini
 from routers.retraining.retraining_router import router as retraining_router
 from routers.app_setting.app_setting_router import router as app_setting_router
 from routers.dbtypes.dbtypes_router import router as dbtypes_router
+from routers.database_connections.database_connections_router import router as database_connections_router
 
 
 logger = get_logger(__name__)
@@ -147,3 +148,5 @@ app.include_router(app_setting_router)
 logger.info("Registered app settings router")
 app.include_router(dbtypes_router)
 logger.info("Registered dbtypes router")
+app.include_router(database_connections_router)
+logger.info("Registered database connections router")

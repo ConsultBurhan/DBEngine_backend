@@ -70,7 +70,7 @@ async def get_current_user_id(
         )
     try:
         user_id = int(user_id_str)
-        if user_id <= 0:
+        if user_id < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User ID must be a positive integer"
@@ -103,7 +103,7 @@ async def get_client_id(
         )
     try:
         client_id = int(client_id_str)
-        if client_id <= 0:
+        if client_id < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Client ID must be a positive integer"
@@ -136,7 +136,7 @@ async def get_subscriber_id(
         )
     try:
         subscriber_id = int(subscriber_id_str)
-        if subscriber_id <= 0:
+        if subscriber_id < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Subscriber ID must be a positive integer"

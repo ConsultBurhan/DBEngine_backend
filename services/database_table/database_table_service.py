@@ -250,7 +250,7 @@ class DatabasetableService:
                 create_database_table_role is None
                 or create_database_table_role.DatabaseTableId <= 0
             ):
-                response.Status = -1
+                response.Status = 1
                 response.Message = "Invalid request. Database Table ID is required."
                 return response
 
@@ -261,7 +261,7 @@ class DatabasetableService:
 
         except Exception as ex:
             logger.error(f"Error creating database table role map: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while creating document group role map: {str(ex)}"
 
         return response
@@ -376,7 +376,7 @@ class DatabasetableService:
 
         except Exception as ex:
             logger.error(f"Error updating database table role mappings: {ex}")
-            response.Status = -1
+            response.Status = 1
             response.Message = f"An error occurred while updating document group role mappings: {str(ex)}"
 
         return response
