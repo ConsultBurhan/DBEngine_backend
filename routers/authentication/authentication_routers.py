@@ -1,7 +1,6 @@
 """Authentication router - Python implementation of C# AuthenticationController."""
 
 from datetime import datetime, timedelta
-from tkinter.constants import S
 from typing import Union
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status

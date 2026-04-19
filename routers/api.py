@@ -37,7 +37,7 @@ from routers.retraining.retraining_router import router as retraining_router
 from routers.app_setting.app_setting_router import router as app_setting_router
 from routers.dbtypes.dbtypes_router import router as dbtypes_router
 from routers.database_connections.database_connections_router import router as database_connections_router
-
+from routers.health.health_router import router as health_router
 
 logger = get_logger(__name__)
 
@@ -82,14 +82,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
-@app.get("/")
-async def root():
-    """
-    Basic root endpoint.
-    """
-    return {"message": "This is DBEngine Backend"}
-
 # Add CORS middleware to allow cross-origin requests
 app.add_middleware(
     CORSMiddleware,
@@ -102,6 +94,8 @@ app.add_middleware(
 logger.info("CORS middleware configured to allow all origins (development mode)")
 
 # Include routers
+app.include_router(health_router)
+logger.info("Registered health router")
 logger.info("Registering API routers")
 app.include_router(users_router)
 logger.info("Registered users router")
@@ -126,7 +120,7 @@ app.include_router(bot_training_router)
 logger.info("Registered bot trainings router")
 app.include_router(bot_response_rating_router)
 logger.info("Registered bot response rating router")
-app.include_router(conversations_router) # Get response yet to be implemented 
+app.include_router(conversations_router)
 logger.info("Registered conversations router")
 app.include_router(database_table_column_router)
 logger.info("Registered database table column router")
@@ -150,3 +144,4 @@ app.include_router(dbtypes_router)
 logger.info("Registered dbtypes router")
 app.include_router(database_connections_router)
 logger.info("Registered database connections router")
+

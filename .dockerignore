@@ -1,0 +1,52 @@
+# Venv
+.venv
+venv
+env
+bin
+lib
+include
+share
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Logs and Data
+logs
+data
+audio_outputs
+*.log
+
+# Notebooks
+notebooks
+*.ipynb
+
+# Docker
+docker-compose.yml
+Dockerfile.tesseract
+Dockerfile.*
+.dockerignore
+
+# IDEs
+.vscode
+.idea
+.antigravity
+.gemini
+.agents
+.agent
+
+# Others
+requirements_old.txt
+old_code/
+tmp/
+brain/
+artifacts/
