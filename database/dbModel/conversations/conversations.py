@@ -7,7 +7,7 @@ from config.DBbasemodel import _BaseDBModel
 
 class Conversations(_BaseDBModel):
     """Conversation entity."""
-    id: int
+    id: Optional[int] = None
     clientid: Optional[int] = None
     botid: Optional[int] = None
     userid: Optional[int] = None
@@ -27,7 +27,7 @@ class Conversations(_BaseDBModel):
     
 class Conversationmessages(_BaseDBModel):
     """Conversation message entity."""
-    id: int
+    id: Optional[int] = None
     conversationid: Optional[int] = None
     messagetype: Optional[str] = None
     messagetext: Optional[str] = None
@@ -45,7 +45,7 @@ class Conversationmessages(_BaseDBModel):
 
 class ConversationHistory(_BaseDBModel):
     """Conversation history entity."""
-    id: int
+    id: Optional[int] = None
     userquery: str
     sqlquery: Optional[str] = None
     answer: Optional[str] = None

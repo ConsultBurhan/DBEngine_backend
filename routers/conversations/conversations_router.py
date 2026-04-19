@@ -1,11 +1,13 @@
 """Conversations router - Python implementation of ConversationsController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, UploadFile
 from fastapi import status as fastapiStatus
+from fastapi.responses import StreamingResponse
 
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_current_user, get_current_user_id, get_client_id
 from models.common import ApiResult
+from models.service_models.conversation.conversation_service_models import GetResponse
 from services.conversations.conversations_service import ConversationService
 
 logger = get_logger(__name__)
@@ -21,31 +23,75 @@ router = APIRouter(
 @router.post("/GetResponse")
 async def get_response(
     request: Request,
+    RoleIds: str = Form(...),
+    BotId: int = Form(...),
+    MessageText: str = Form(...),
+    ConversationId: int = Form(0),
+    ResponseType: int = Form(0),
+    ResponseLanguage: int = Form(...),
+    BotType: int = Form(...),
+    NeedLipSync: bool = Form(False),
+    File: UploadFile = None,
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),
 ):
     """
     Get response from bot with message and optional file attachment.
-    Placeholder implementation - to be implemented with streaming support.
+    Streams response via Server-Sent Events (SSE).
 
     Returns:
         Streaming response with conversation events
     """
     try:
-        # Placeholder - TODO: Implement streaming response
-        return ApiResult(
-            Success=False,
-            Message="GetResponse endpoint is not yet implemented",
-            Result=None,
-            StatusCode=501,
+        # Create request DTO
+        request_dto = GetResponse(
+            RoleIds=RoleIds,
+            BotId=BotId,
+            MessageText=MessageText,
+            ConversationId=ConversationId if ConversationId else None,
+            ResponseType=ResponseType if ResponseType else None,
+            ResponseLanguage=ResponseLanguage,
+            File=File,
+            BotType=BotType,
+            NeedLipSync=NeedLipSync,
+        )
+
+        # Create conversation service
+        conversation_service = ConversationService(client_id=client_id, user_id=user_id)
+
+        # Return streaming response with SSE headers
+        return StreamingResponse(
+            conversation_service.stream_response_async(request_dto),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
     except Exception as ex:
         logger.error(f"Error occurred in GetResponse: {ex}")
-        raise HTTPException(
-            status_code=fastapiStatus.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing your request"
-        ) from ex
+
+        # Return error event in SSE format
+        error_event = {
+            "event": "error",
+            "Content": str(ex),
+        }
+        error_bytes = f"event: error\ndata: {error_event}\n\n".encode("utf-8")
+
+        async def error_generator():
+            yield error_bytes
+
+        return StreamingResponse(
+            error_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
 
 @router.get("/GetUserConversations", response_model=ApiResult)

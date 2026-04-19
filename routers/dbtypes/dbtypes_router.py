@@ -1,6 +1,6 @@
 """Dbtypes router - Python implementation of C# DbtypesController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, Path
 
 from config.logger_config import get_logger
 from dependencies.jwt_dependencies import get_client_id, get_current_user, get_current_user_id
@@ -61,10 +61,10 @@ async def get_all_dbtypes(
         ) from ex
 
 
-@router.get("/GetDbtypeById", response_model=ApiResult)
+@router.get("/{id}", response_model=ApiResult)
 async def get_dbtype_by_id(
     request: Request,
-    id: int = Query(..., description="Database type ID"),
+    id: int = Path(..., description="Database type ID"),
     current_user: dict = Depends(get_current_user),
     client_id: int = Depends(get_client_id),
     user_id: int = Depends(get_current_user_id),
@@ -190,10 +190,10 @@ async def update_dbtype(
         ) from ex
 
 
-@router.delete("", response_model=ApiResult)
+@router.delete("{id}", response_model=ApiResult)
 async def delete_dbtype(
     request: Request,
-    id: int = Query(..., description="Database type ID"),
+    id: int = Path(..., description="Database type ID"),
     current_user: dict = Depends(get_current_user),
     client_id: int = Depends(get_client_id),
     user_id: int = Depends(get_current_user_id),

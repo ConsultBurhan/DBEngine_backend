@@ -1,6 +1,6 @@
 """Retraining router - Python implementation of RetrainingController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query, Path
 from fastapi import status as fastapiStatus
 
 from config.logger_config import get_logger
@@ -65,10 +65,10 @@ async def create(
         ) from ex
 
 
-@router.get("", response_model=ApiResult)
+@router.get("{id}", response_model=ApiResult)
 async def get_by_id(
     request: Request,
-    id: int = Query(..., description="Bot Training map Id"),
+    id: int = Path(..., description="Bot Training map Id"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),
@@ -108,11 +108,11 @@ async def get_by_id(
         ) from ex
 
 
-@router.get("/bot", response_model=ApiResult)
+@router.get("/bot/{botId}/{clientId}", response_model=ApiResult)
 async def get_by_bot(
     request: Request,
-    botId: int = Query(..., description="Bot ID"),
-    clientId: str = Query(..., description="Client ID"),
+    botId: int = Path(..., description="Bot ID"),
+    clientId: str = Path(..., description="Client ID"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),
@@ -196,10 +196,10 @@ async def update(
         ) from ex
 
 
-@router.delete("/", response_model=ApiResult)
+@router.delete("/{id}", response_model=ApiResult)
 async def delete(
     request: Request,
-    id: int = Query(..., description="Training Map Id"),
+    id: int = Path(..., description="Training Map Id"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),

@@ -1,6 +1,7 @@
 """Database connections router - Python implementation of DatabaseconnectionsController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from os import path
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Path
 from fastapi import status as fastapiStatus
 
 from config.logger_config import get_logger
@@ -125,7 +126,7 @@ async def create_databaseconnection(
         db_service = DatabaseconnectionService(client_id=client_id, user_id=user_id)
         result = await db_service.create_database_connection_async(create_dto)
 
-        if not result.Success:
+        if not result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -167,7 +168,7 @@ async def update_databaseconnection(
         db_service = DatabaseconnectionService(client_id=client_id, user_id=user_id)
         result = await db_service.update_database_connection_async(update_dto)
 
-        if not result.Success:
+        if not result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -209,7 +210,7 @@ async def refresh_database_schema(
         db_service = DatabaseconnectionService(client_id=client_id, user_id=user_id)
         result = await db_service.refresh_database_schema_async(connection_id)
 
-        if not result.Success:
+        if not result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -251,7 +252,7 @@ async def delete_databaseconnection(
         db_service = DatabaseconnectionService(client_id=client_id, user_id=user_id)
         result = await db_service.delete_database_connection_async(id)
 
-        if not result.Success:
+        if not result.Status != 0:
             return ApiResult(
                 StatusCode=1,
                 Success=False,
@@ -291,12 +292,14 @@ async def get_database_connection(
 
         if not response.Success:
             return ApiResult(
+                StatusCode=0,
                 Success=False,
                 Message=response.Message,
                 Result=None,
             )
 
         return ApiResult(
+            StatusCode=1,
             Success=True,
             Message=response.Message,
             Result=response.Data,

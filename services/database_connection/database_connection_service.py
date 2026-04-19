@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import IntEnum
 from typing import List, Optional
 
 from sqlalchemy import text
@@ -27,6 +28,12 @@ from database.dbModel.database_table.databasetable import Databasetable, Databas
 from config.logger_config import get_logger
 
 logger = get_logger(__name__)
+
+class DatabaseType(IntEnum):
+    """Database type enumeration."""
+    POSTGRESQL = 1
+    SAP_HANA = 2
+    SQL_SERVER = 3
 
 
 class DatabaseconnectionService:
@@ -80,7 +87,6 @@ class DatabaseconnectionService:
                     {"client_id": self.client_id}
                 )
                 rows = result.mappings().all()
-
                 connections = [
                     DatabaseConnectionList(
                         Id=row["id"],
@@ -104,12 +110,12 @@ class DatabaseconnectionService:
                 ]
 
                 response.Data = connections
-                response.Status = 0
+                response.Success = True
                 response.Message = "Database connections fetched successfully"
 
         except Exception as ex:
             logger.error(f"Error fetching database connections: {ex}")
-            response.Status = 1
+            response.Success = False
             response.Message = f"An error occurred while fetching database connections: {str(ex)}"
             response.Data = []
 
@@ -126,7 +132,7 @@ class DatabaseconnectionService:
         try:
             if connection_id is None or connection_id <= 0:
                 response.Message = "Valid database connection ID is required"
-                response.Status = 1
+                response.Success = False
                 return response
 
             async with await self._db_manager.get_session() as session:
@@ -159,7 +165,7 @@ class DatabaseconnectionService:
                 row = result.mappings().first()
 
                 if row is None:
-                    response.Status = 1
+                    response.Success = False
                     response.Message = f"No active database connection found with ID {connection_id}"
                     return response
 
@@ -183,18 +189,19 @@ class DatabaseconnectionService:
                 )
 
                 response.Data = connection
-                response.Status = 0
+                response.Success = True
                 response.Message = "Database connection fetched successfully"
 
         except Exception as ex:
             logger.error(f"Error fetching database connection by ID: {ex}")
-            response.Status = 1
+            response.Success = False
             response.Message = f"An error occurred while fetching database connection: {str(ex)}"
 
         return response
 
         
     async def _connect_to_sap_hana_and_get_views(
+        self,
         server: str,
         db_name: str,
         username: str,
@@ -209,8 +216,8 @@ class DatabaseconnectionService:
                 user=username,
                 password=password
             )
-            result.is_connected = True
-
+            result.IsConnected = True
+            logger.info(["DEBUGGING"])
             view_query = """
                 SELECT SCHEMA_NAME, VIEW_NAME
                 FROM SYS.VIEWS
@@ -252,7 +259,7 @@ class DatabaseconnectionService:
             connection.close()
 
         except Exception as ex:
-            result.is_connected = False
+            result.IsConnected = False
 
     async def _connect_to_postgresql_and_get_tables(
         self,
@@ -260,16 +267,16 @@ class DatabaseconnectionService:
         db_name: str,
         username: str,
         password: str,
-        result: DatabaseCheckResult
+        result: DatabaseCheckResult,
+        port: int = 5432
     ) -> None:
         try:
-            async with await asyncpg.connect(
-                host=server,
-                database=db_name,
-                user=username,
-                password=password
-            ) as connection:
-                result.is_connected = True
+            # Build connection string: postgresql://user:password@host:port/database
+            connection_string = f"postgresql://{username}:{password}@{server}/{db_name}"
+            
+            connection = await asyncpg.connect(connection_string)
+            try:
+                result.IsConnected = True
 
                 table_query = """
                     SELECT table_schema, table_name
@@ -319,10 +326,12 @@ class DatabaseconnectionService:
                         ))
 
                     result.Tables.append(table)
+            finally:
+                await connection.close()
 
         except Exception as ex:
             logger.error(f"Error connecting to PostgreSQL: {ex}")
-            result.is_connected = False
+            result.IsConnected = False
             
     async def check_database_and_get_tables_async(
         self,
@@ -348,27 +357,27 @@ class DatabaseconnectionService:
         result = DatabaseCheckResult(IsConnected=False, Tables=[])
 
         try:
-            # PostgreSQL (db_type = 2)
-            if db_type == 2:
+            # PostgreSQL
+            if db_type == DatabaseType.POSTGRESQL:
                 await self._connect_to_postgresql_and_get_tables(
                     server, db_name, username, password, result
                 )
-            # SAP HANA (db_type = 3)
-            elif db_type == 3:
+            # SAP HANA
+            elif db_type == DatabaseType.SAP_HANA:
                 await self._connect_to_sap_hana_and_get_views(
                     server, db_name, username, password, result
                 )
-            # SQL Server (db_type = 1) - not implemented yet
-            elif db_type == 1:
-                result.is_connected = False
+            # SQL Server - not implemented yet
+            elif db_type == DatabaseType.SQL_SERVER:
+                result.IsConnected = False
                 logger.warning("SQL Server connection not implemented yet")
             else:
-                result.is_connected = False
+                result.IsConnected = False
                 logger.warning(f"Unknown database type: {db_type}")
 
         except Exception as ex:
             logger.error(f"Error checking database connection: {ex}")
-            result.is_connected = False
+            result.IsConnected = False
 
         return result
 
@@ -382,22 +391,32 @@ class DatabaseconnectionService:
             async with await self._db_manager.get_session() as session:
                 async with session.begin():
                     # Step 1: Save the database connection
-                    database_connection = Databaseconnections(
-                        connectiontype=create_dto.Connectiontype,
-                        server=create_dto.Server,
-                        username=create_dto.Username,
-                        password=create_dto.Password,
-                        dbname=create_dto.Dbname,
-                        connectionstring=create_dto.Connectionstring,
-                        clientid=self.client_id,
-                        botid=create_dto.Botid,
-                        tablecount=create_dto.Tablecount,
-                        status="1",
-                        createddate=datetime.now(),
-                        createdby=str(self.user_id)
+                    result = await session.execute(
+                        text("""
+                            INSERT INTO databaseconnections
+                                (connectiontype, server, username, password, dbname, connectionstring,
+                                 clientid, botid, tablecount, status, createddate, createdby)
+                            VALUES
+                                (:connectiontype, :server, :username, :password, :dbname, :connectionstring,
+                                 :clientid, :botid, :tablecount, :status, :createddate, :createdby)
+                            RETURNING id
+                        """),
+                        {
+                            "connectiontype": create_dto.Connectiontype,
+                            "server": create_dto.Server,
+                            "username": create_dto.Username,
+                            "password": create_dto.Password,
+                            "dbname": create_dto.Dbname,
+                            "connectionstring": create_dto.Connectionstring,
+                            "clientid": self.client_id,
+                            "botid": create_dto.Botid,
+                            "tablecount": create_dto.Tablecount,
+                            "status": "1",
+                            "createddate": datetime.now(),
+                            "createdby": str(self.user_id)
+                        }
                     )
-                    session.add(database_connection)
-                    await session.flush()  
+                    database_connection_id = result.scalar()  
 
                     # Step 2: Check database connection
                     db_check_result = await self.check_database_and_get_tables_async(
@@ -415,28 +434,43 @@ class DatabaseconnectionService:
 
                     # Step 3: Insert tables and columns
                     for table in db_check_result.Tables:
-                        db_table = Databasetable(
-                            dbid=database_connection.id,
-                            tablename=table.TableName,
-                            status="1",
-                            botid=create_dto.Botid,
-                            createddate=datetime.now(),
-                            createdby=str(self.user_id)
+                        table_result = await session.execute(
+                            text("""
+                                INSERT INTO databasetables
+                                    (dbid, tablename, status, botid, createddate, createdby)
+                                VALUES
+                                    (:dbid, :tablename, :status, :botid, :createddate, :createdby)
+                                RETURNING id
+                            """),
+                            {
+                                "dbid": database_connection_id,
+                                "tablename": table.TableName,
+                                "status": "1",
+                                "botid": create_dto.Botid,
+                                "createddate": datetime.now(),
+                                "createdby": str(self.user_id)
+                            }
                         )
-                        session.add(db_table)
-                        await session.flush() 
+                        db_table_id = table_result.scalar()
                         for column in table.Columns:
-                            db_column = Databasetablescolumn(
-                                tableid=db_table.id,
-                                columnname=column.ColumnName,
-                                dbtype=column.DataType,
-                                botid=create_dto.Botid,
-                                isprimary=column.IsPrimary,
-                                isnullable=column.IsNullable,
-                                createddate=datetime.now(),
-                                createdby=str(self.user_id)
+                            await session.execute(
+                                text("""
+                                    INSERT INTO databasetablescolumns
+                                        (tableid, columnname, dbtype, botid, "IsPrimary", "IsNullable", createddate, createdby)
+                                    VALUES
+                                        (:tableid, :columnname, :dbtype, :botid, :isprimary, :isnullable, :createddate, :createdby)
+                                """),
+                                {
+                                    "tableid": db_table_id,
+                                    "columnname": column.ColumnName,
+                                    "dbtype": column.DataType,
+                                    "botid": create_dto.Botid,
+                                    "isprimary": column.IsPrimary,
+                                    "isnullable": column.IsNullable,
+                                    "createddate": datetime.now(),
+                                    "createdby": str(self.user_id)
+                                }
                             )
-                            session.add(db_column)
 
                     response.Status = True
                     response.Message = "Database connection and table metadata saved successfully."
@@ -547,31 +581,44 @@ class DatabaseconnectionService:
 
                     # Step 5: Insert new tables and columns
                     for table in db_check_result.Tables:
-                        db_table = Databasetable(
-                            dbid=update_dto.Id,
-                            tablename=table.TableName,
-                            status="1",
-                            botid=update_dto.Botid,
-                            createddate=datetime.now(),
-                            createdby=str(self.user_id)
+                        table_result = await session.execute(
+                            text("""
+                                INSERT INTO databasetables
+                                    (dbid, tablename, status, botid, createddate, createdby)
+                                VALUES
+                                    (:dbid, :tablename, :status, :botid, :createddate, :createdby)
+                                RETURNING id
+                            """),
+                            {
+                                "dbid": update_dto.Id,
+                                "tablename": table.TableName,
+                                "status": "1",
+                                "botid": update_dto.Botid,
+                                "createddate": datetime.now(),
+                                "createdby": str(self.user_id)
+                            }
                         )
-
-                        session.add(db_table)
-                        await session.flush()
+                        db_table_id = table_result.scalar()
 
                         for column in table.Columns:
-                            db_column = Databasetablescolumn(
-                                tableid=db_table.id,
-                                columnname=column.ColumnName,
-                                dbtype=column.DataType,
-                                botid=update_dto.Botid,
-                                isprimary=column.IsPrimary,
-                                isnullable=column.IsNullable,
-                                createddate=datetime.now(),
-                                createdby=str(self.user_id)
+                            await session.execute(
+                                text("""
+                                    INSERT INTO databasetablescolumns
+                                        (tableid, columnname, dbtype, botid, "IsPrimary", "IsNullable", createddate, createdby)
+                                    VALUES
+                                        (:tableid, :columnname, :dbtype, :botid, :isprimary, :isnullable, :createddate, :createdby)
+                                """),
+                                {
+                                    "tableid": db_table_id,
+                                    "columnname": column.ColumnName,
+                                    "dbtype": column.DataType,
+                                    "botid": update_dto.Botid,
+                                    "isprimary": column.IsPrimary,
+                                    "isnullable": column.IsNullable,
+                                    "createddate": datetime.now(),
+                                    "createdby": str(self.user_id)
+                                }
                             )
-
-                            session.add(db_column)
 
                     response.Status = 0
                     response.Message = "Database connection and related tables/columns updated successfully."
@@ -651,34 +698,47 @@ class DatabaseconnectionService:
                         """),
                         {"db_id": connection_id}
                     )
-
                     # Step 4: Insert new tables and columns
                     for table in db_check_result.Tables:
-                        db_table = Databasetable(
-                            dbid=connection_id,
-                            tablename=table.TableName,
-                            status="1",
-                            botid=row["botid"],
-                            createddate=datetime.now(),
-                            createdby=str(self.user_id)
+                        table_result = await session.execute(
+                            text("""
+                                INSERT INTO databasetables
+                                    (dbid, tablename, status, botid, createddate, createdby)
+                                VALUES
+                                    (:dbid, :tablename, :status, :botid, :createddate, :createdby)
+                                RETURNING id
+                            """),
+                            {
+                                "dbid": connection_id,
+                                "tablename": table.TableName,
+                                "status": "1",
+                                "botid": row["botid"],
+                                "createddate": datetime.now(),
+                                "createdby": str(self.user_id)
+                            }
                         )
+                        db_table_id = table_result.scalar()
 
-                        session.add(db_table)
-                        await session.flush()
 
                         for column in table.Columns:
-                            db_column = Databasetablescolumn(
-                                tableid=db_table.id,
-                                columnname=column.ColumnName,
-                                dbtype=column.DataType,
-                                botid=row["botid"],
-                                isprimary=column.IsPrimary,
-                                isnullable=column.IsNullable,
-                                createddate=datetime.now(),
-                                createdby=str(self.user_id)
+                            await session.execute(
+                                text("""
+                                    INSERT INTO databasetablescolumns
+                                        (tableid, columnname, dbtype, botid, "IsPrimary", "IsNullable", createddate, createdby)
+                                    VALUES
+                                        (:tableid, :columnname, :dbtype, :botid, :isprimary, :isnullable, :createddate, :createdby)
+                                """),
+                                {
+                                    "tableid": db_table_id,
+                                    "columnname": column.ColumnName,
+                                    "dbtype": column.DataType,
+                                    "botid": row["botid"],
+                                    "isprimary": column.IsPrimary,
+                                    "isnullable": column.IsNullable,
+                                    "createddate": datetime.now(),
+                                    "createdby": str(self.user_id)
+                                }
                             )
-
-                            session.add(db_column)
 
                     response.Status = 0
                     response.Message = "Database schema refreshed successfully."
@@ -770,12 +830,12 @@ class DatabaseconnectionService:
                 ]
 
                 response.Data = connection_list
-                response.Status = 0
+                response.Success = True
                 response.Message = "Connections fetched successfully"
 
         except Exception as ex:
             logger.error(f"Error fetching database connections: {ex}")
-            response.Status = 1
+            response.Success = False
             response.Message = f"An error occurred while fetching connections: {str(ex)}"
             response.Data = []
 

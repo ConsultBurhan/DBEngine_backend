@@ -10,7 +10,7 @@ from pydantic import BaseModel
 class DatabaseConnectionList(BaseModel):
     """DTO for database connection list response."""
     Id: int
-    Connectiontype: Optional[str] = None
+    Connectiontype: Optional[int] = None
     Server: Optional[str] = None
     Username: Optional[str] = None
     Password: Optional[str] = None

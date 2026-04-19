@@ -1,6 +1,6 @@
 """App settings router - Python implementation of AppsettingsController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Path
 from fastapi import status as fastapiStatus
 
 from config.logger_config import get_logger
@@ -58,10 +58,10 @@ async def get_all_appsettings(
         ) from ex
 
 
-@router.get("/GetAppsettingById", response_model=ApiResult)
+@router.get("/{id}", response_model=ApiResult)
 async def get_appsetting_by_id(
     request: Request,
-    id: int = Query(..., description="App setting ID"),
+    id: int = Path(..., description="App setting ID"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),
@@ -144,11 +144,11 @@ async def create_appsetting(
         ) from ex
 
 
-@router.put("", response_model=ApiResult)
+@router.put("{id}", response_model=ApiResult)
 async def update_appsetting(
     request: Request,
     appsetting: AppSetting,
-    id: int = Query(..., description="App setting ID"),
+    id: int = Path(..., description="App setting ID"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),
@@ -189,10 +189,10 @@ async def update_appsetting(
         ) from ex
 
 
-@router.delete("", response_model=ApiResult)
+@router.delete("{id}", response_model=ApiResult)
 async def delete_appsetting(
     request: Request,
-    id: int = Query(..., description="App setting ID"),
+    id: int = Path(..., description="App setting ID"),
     current_user: dict = Depends(get_current_user),
     user_id: int = Depends(get_current_user_id),
     client_id: int = Depends(get_client_id),

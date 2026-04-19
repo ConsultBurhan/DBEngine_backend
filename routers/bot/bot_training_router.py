@@ -1,6 +1,6 @@
 """Bot trainings router - Python implementation of BotTrainingsController."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Path
 from fastapi import status as fastapiStatus
 
 from config.logger_config import get_logger

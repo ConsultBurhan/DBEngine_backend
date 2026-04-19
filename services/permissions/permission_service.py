@@ -149,8 +149,8 @@ class PermissionService:
                 # Map permission tasks to DTOs with permission flags
                 permission_list = []
                 for pt in all_permission_tasks:
-                    existing = existing_perms_dict.get(pt["id"])
-
+                    existing = existing_perms_dict.get(pt["id"], None)
+                    if existing is None: continue
                     permission_list.append(
                         PermissionList(
                             PermissionTaskId=pt["id"],
